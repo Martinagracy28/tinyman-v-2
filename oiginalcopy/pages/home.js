@@ -11,7 +11,7 @@ const home = () => {
         height: '88vh'
       }}
     >
-      <h1>Welcome to Element Swap</h1>
+      <h1>Welcome to Tinyman Swap</h1>
     </div>
   );
 };

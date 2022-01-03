@@ -7,9 +7,6 @@ import Container from "react-bootstrap/Container";
 import Button from "react-bootstrap/Button";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import Toast from "react-bootstrap/Toast";
-import ToastContainer from "react-bootstrap/ToastContainer";
-import "./../bootstrap.min.css";
 
 const myAlgoWallet = new MyAlgoConnect();
 const algodClient = new algosdk.Algodv2('', 'https://api.testnet.algoexplorer.io', '');
@@ -670,20 +667,20 @@ check_fees:
     >=
     return`;
   
-function Swap() {
+function Pool() {
 
     const [s1, sets1] = useState("");
     const [s2, sets2] = useState("");
     const [ilt, setilt] = useState("");
+    const [input1, set_input1] = useState("");
+    const [input2, set_input2] = useState("");
     const [tokenid1,settoken1] = useState("");
     const [tokenid2,settoken2] = useState("");
     const [appId,setAppId] = useState("");
-    const[swapamount,set_inp_goal] = useState("");
-    const[samount,sets] = useState("");
-    const[swapbutton,setswapbutton] = useState("");
-    const[txId, setTxId] = useState("");
-    const [show, setShow] = useState(false);
-     
+    
+    const [showOptInButton, setShowOptInButton] = useState(false);
+    const [showMintButton, setShowMintButton] = useState(false);
+  
     const waitForConfirmation = async function (algodclient, txId) {
       let status = await algodclient.status().do();
       let lastRound = status["last-round"];
@@ -711,8 +708,12 @@ function Swap() {
 
     async function readLocalState(client, account, index1){
         let accountInfoResponse = await client.accountInformation(account).do();
+        // let val = await client.ApplicationInformation(appId);
+        // console.log("val",val)
         console.log("accinfo",accountInfoResponse);
        
+        console.log("address",(accountInfoResponse.assets.length))
+        
         for (let i = 0; i < accountInfoResponse['apps-local-state'].length; i++) { 
           if (accountInfoResponse['apps-local-state'][i].id == index1) {
               console.log("Application's global state:");
@@ -727,37 +728,14 @@ function Swap() {
                   }
                   if(enc['key'] === "aWx0"){
                     setilt(enc.value.uint)
-                  }             
+                  }                  
               }
               
           }
       }
     }
-    const selecttoken = async(appid) =>{
-      let index = parseInt(appid);
-      console.log("appId inside donate", index);
-
-      setAppId(appid);
-      let replacedData = data.replaceAll("Token1",tokenid1).replaceAll("Token2",tokenid2).replaceAll("appId",appId);
-     console.log("compiling")
-      let results = await algodClient.compile(replacedData).do();
-      localStorage.setItem("escrow",results.hash);
-      readLocalState(algodClient,results.hash,appId);
-      setswapbutton(true);
-
-    } 
-    useEffect(() =>{first()},[s1,s2])
-    const first = async() =>{
-      const algodClient = new algosdk.Algodv2(
-        "",
-        "https://api.testnet.algoexplorer.io",
-        ""
-      );
-      
-      readLocalState(algodClient,localStorage.getItem("escrow"),53434408)
-    }
-
-    const swap = async (appid,asset_in_amount) => {
+     
+    const mint = async (appid) => {
  
       let index = parseInt(appid);
       console.log("appId inside donate", index);
@@ -766,14 +744,12 @@ function Swap() {
         
       let replacedData = data.replaceAll("Token1",tokenid1).replaceAll("Token2",tokenid2).replaceAll("appId",appId);
       let results = await algodClient.compile(replacedData).do();
-      // console.log(replacedData)
 
       console.log("Hash = " + results.hash);
       console.log("Result = " + results.result);
-      let escrowaddress = localStorage.getItem("escrow");
-      console.log("escrow",escrowaddress)
-      let accountInfoResponse = await algodClient.accountInformation(escrowaddress).do();
-      console.log("account",accountInfoResponse);
+
+      let accountInfoResponse = await algodClient.accountInformation(results.hash).do();
+      console.log("response",accountInfoResponse)
       let assetId3 = accountInfoResponse.assets[2]['asset-id'];
       console.log('Asset 3 ID: ', accountInfoResponse.assets[2]['asset-id']);
   
@@ -782,103 +758,280 @@ function Swap() {
       let lsig = algosdk.makeLogicSig(program);
       console.log("Escrow =", lsig.address()); 
 
-      readLocalState(algodClient,escrowaddress,appId);
-     console.log(s1)
-      let k = s1 * s2 ;
-      let asset_in_amount_minus_fee = (asset_in_amount * 997) / 1000
-          
-      let swap_fees = asset_in_amount - asset_in_amount_minus_fee
-          
-      let l = asset_in_amount_minus_fee - swap_fees;
-      let asset_out_amount = s2 - (k / (s1 + l ))   
-      
+      readLocalState(algodClient,results.hash,appId);
+
+      let total;
+      if (s1 === undefined || s2 === "") {
+        total = Math.sqrt(input1 * input2) - 1000;
+        console.log("Total,: ", total);
+      } else {
+        let liquidity_asset_amount = Math.min(
+          (input1 * ilt) / s1,
+          (input2 * ilt) / s2
+        );
+        total = liquidity_asset_amount - liquidity_asset_amount * 0.5;
+        console.log("Total 2: ", total);
+      }
+
       try {
 
         const params = await algodClient.getTransactionParams().do();
-        
         let sender = localStorage.getItem("walletAddress");
-        let recv_escrow = lsig.address();
-        let amount = 2000;
-        
-        let transaction1 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-          from: sender, 
-          to: recv_escrow, 
-          amount: amount,  
-           suggestedParams: params
-         });
-       
-         let appArg = [];
-         appArg.push(new Uint8Array(Buffer.from("swap")));
-         appArg.push(new Uint8Array(Buffer.from("fi")));
 
-         let foreignassets = [];
-         foreignassets.push(parseInt(tokenid1));
-         foreignassets.push(parseInt(tokenid2));
-         foreignassets.push(parseInt(assetId3));
-         const transaction2 = algosdk.makeApplicationNoOpTxnFromObject({
-             from: recv_escrow, 
-             appIndex: index,
-             appArgs: appArg,
-             appAccounts:sender,
-             accounts: [sender],
-             foreignAssets:foreignassets,
-             suggestedParams: params
-           });
+        let recv_escrow = lsig.address();
+        let amount = 3000;
   
-          const transaction3 = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+        let note1 = [];
+        note1.push(new Uint8Array(Buffer.from("fee")));
+        let transaction1 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+          from: sender,
+          to: recv_escrow,
+          amount: amount,
+          suggestedParams: params,
+        });
+  
+        let appArg = [];
+        appArg.push(new Uint8Array(Buffer.from("mint")));
+  
+        let foreignassets = [];
+        foreignassets.push(parseInt(tokenid1));
+        foreignassets.push(parseInt(tokenid2));
+        foreignassets.push(parseInt(assetId3));
+        const transaction2 = algosdk.makeApplicationNoOpTxnFromObject({
+          from: recv_escrow,
+          appIndex: index,
+          appArgs: appArg,
+          appAccounts: sender,
+          accounts: [sender],
+          foreignAssets: foreignassets,
+          suggestedParams: params,
+        });
+  
+        const transaction3 =
+          algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
             from: sender,
             to: recv_escrow,
             assetIndex: parseInt(tokenid1),
             note: undefined,
-            accounts:sender,
-            amount: parseInt(asset_in_amount), 
-            suggestedParams: params
+            accounts: sender,
+            amount: parseInt(input1),
+            suggestedParams: params,
           });
-
-          const transaction4 = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-            from: recv_escrow ,
-            to: sender,
-            assetIndex:parseInt(tokenid2), 
+  
+        const transaction4 =
+          algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+            from: sender,
+            to: recv_escrow,
+            assetIndex: parseInt(tokenid2),
             note: undefined,
-            accounts: recv_escrow,
-            amount: parseInt(parseInt(asset_out_amount).toFixed(0)),
-            suggestedParams: params
+            accounts: sender,
+            amount: parseInt(input2),
+            suggestedParams: params,
           });
-          
-        const groupID = algosdk.computeGroupID([ transaction1, transaction2, transaction3, transaction4]);
-        const txs = [ transaction1, transaction2, transaction3, transaction4];
-        for (let i = 0; i <= 3; i++) txs[i].group = groupID;
-      
-        const signedTx2 = algosdk.signLogicSigTransaction(txs[1], lsig);
-        const signedTx4 = algosdk.signLogicSigTransaction(txs[3], lsig);
-        const signedTxnarray = await myAlgoWallet.signTransaction([txs[0].toByte(),txs[2].toByte()]);
-        
-    const response = await algodClient.sendRawTransaction([signedTxnarray[0].blob, signedTx2.blob, signedTxnarray[1].blob, signedTx4.blob]).do();
-    console.log("TxID", JSON.stringify(response, null, 1));
-    setTxId(response.txId);
-    setShow(true);
-    await waitForConfirmation(algodClient, response.txId);
+  
+        let foreignassetliquidity = [];
+        foreignassetliquidity.push(parseInt(assetId3));
+        console.log(total.toFixed(0));
+        const transaction5 =
+          algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+            from: recv_escrow,
+            to: sender,
+            assetIndex: parseInt(assetId3),
+            note: undefined,
+            accounts: [recv_escrow],
+            appAccounts: recv_escrow,
+            foreignAssets: foreignassetliquidity,
+            amount: parseInt(total.toFixed(0)),
+            suggestedParams: params,
+          });
+  
+        const groupID = algosdk.computeGroupID([
+          transaction1,
+          transaction2,
+          transaction3,
+          transaction4,
+          transaction5,
+        ]);
+        const txs = [
+          transaction1,
+          transaction2,
+          transaction3,
+          transaction4,
+          transaction5,
+        ];
+        for (let i = 0; i <= 4; i++) txs[i].group = groupID;
+  
+        const signedTx1 = algosdk.signLogicSigTransaction(txs[1], lsig);
+        const signedTx2 = algosdk.signLogicSigTransaction(txs[4], lsig);
+
+        const signedTxArray = await myAlgoWallet.signTransaction([txs[0].toByte(),txs[2].toByte(),txs[3].toByte()]);
+  
+        const response = await algodClient
+          .sendRawTransaction([
+            signedTxArray[0].blob,
+            signedTx1.blob,
+            signedTxArray[1].blob,
+            signedTxArray[2].blob,
+            signedTx2.blob,
+          ])
+          .do();
+        console.log("TxID", JSON.stringify(response, null, 1));
+        await waitForConfirmation(algodClient, response.txId);
       } catch (err) {
         console.error(err);
       }
     };
+  useEffect(() =>{},[tokenid1,tokenid2])
+    const bootstrap = async (appid) => {
+  
+      let index = parseInt(appid);
+      console.log("appId inside donate", index);
 
-    function setvalue(asset_in_amount){
+      setAppId(appid);
+      
+      let accountasset1 = await algodClient.getAssetByID(tokenid1).do();
+      let accountasset2 = await algodClient.getAssetByID(tokenid2).do();
+      let unit1 =accountasset1.params['unit-name']
+      let unit2 =accountasset1.params['unit-name']
+     
 
-        set_inp_goal(asset_in_amount);
-        let k = s1 * s2 ;
-        console.log(s1)
-        let asset_in_amount_minus_fee = (asset_in_amount * 997) / 1000
-            
-        let swap_fees = asset_in_amount - asset_in_amount_minus_fee
-            
-        let l = asset_in_amount_minus_fee - swap_fees;
-        let asset_out_amount = s2 - (k / (s1 + l ))   
-        console.log("s",asset_out_amount);
-        
-        sets(asset_out_amount);
-    
-    }
+      let replacedData = data.replaceAll("Token1",tokenid1).replaceAll("Token2",tokenid2).replaceAll("appId",appId);
+      let results = await algodClient.compile(replacedData).do();
+
+      console.log("Hash = " + results.hash);
+      console.log("Result = " + results.result);
+      localStorage.setItem("escrow",results.hash);
+  
+      let program = new Uint8Array(Buffer.from(results.result, "base64"));
+  
+      let lsig = algosdk.makeLogicSig(program);
+      console.log("Escrow =", lsig.address());
+
+      try {
+        const params = await algodClient.getTransactionParams().do();
+        let sender = localStorage.getItem("walletAddress");
+
+        let recv_escrow = lsig.address();
+        let amount = 961000;
+  
+        let transaction1 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+          from: sender,
+          to: recv_escrow,
+          amount: amount,
+          note: undefined,
+          suggestedParams: params,
+        });
+  
+        let appArg = [];
+        appArg.push(new Uint8Array(Buffer.from("bootstrap")));
+        appArg.push(new Uint8Array(tokenid1));
+        appArg.push(new Uint8Array(tokenid2));
+        let foreignassets = [];
+        foreignassets.push(parseInt(tokenid1));
+        foreignassets.push(parseInt(tokenid2));
+        const transaction2 = algosdk.makeApplicationOptInTxnFromObject({
+          from: recv_escrow,
+          appIndex: index,
+          appArgs: appArg,
+          accounts: [sender],
+          foreignAssets: foreignassets,
+          suggestedParams: params,
+        });
+  
+        const transaction3 =
+          algosdk.makeAssetCreateTxnWithSuggestedParamsFromObject({
+            from: recv_escrow,
+            assetName: "Tinyman Pool "+unit1+"-"+unit2 ,
+            unitName: "TM1POOL",
+            assetURL: "https://tinyman.org",
+            total: 18446744073709551615n,
+            decimals: 6,
+            note: undefined,
+            suggestedParams: params,
+          });
+  
+        const transaction4 =
+          algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+            from: recv_escrow,
+            to: recv_escrow,
+            assetIndex: parseInt(tokenid1),
+            note: undefined,
+            amount: 0,
+            suggestedParams: params,
+          });
+  
+        const transaction5 =
+          algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+            from: recv_escrow,
+            to: recv_escrow,
+            assetIndex: parseInt(tokenid2),
+            note: undefined,
+            amount: 0,
+            suggestedParams: params,
+          });
+  
+        const groupID = algosdk.computeGroupID([
+          transaction1,
+          transaction2,
+          transaction3,
+          transaction4,
+          transaction5,
+        ]);
+        const txs = [
+          transaction1,
+          transaction2,
+          transaction3,
+          transaction4,
+          transaction5,
+        ];
+        for (let i = 0; i <= 4; i++) txs[i].group = groupID;
+  
+        const signedTx1 = await myAlgoWallet.signTransaction(txs[0].toByte());
+        const signedTx2 = algosdk.signLogicSigTransaction(txs[1], lsig);  
+        const signedTx3 = algosdk.signLogicSigTransaction(txs[2], lsig);
+        const signedTx4 = algosdk.signLogicSigTransaction(txs[3], lsig);
+        const signedTx5 = algosdk.signLogicSigTransaction(txs[4], lsig);
+        setShowOptInButton(true);
+        const response = await algodClient.sendRawTransaction([signedTx1.blob,signedTx2.blob,signedTx3.blob,signedTx4.blob,signedTx5.blob]).do();
+        // const response = await algodClient.sendRawTransaction([signedTx1.blob,signedTx2.blob,signedTx3.blob,signedTx4.blob,signedTx5.blob]).do();
+          console.log("working")
+        console.log("TxID", JSON.stringify(response, null, 1));
+        await waitForConfirmation(algodClient, response.txId);
+        setShowOptInButton(true);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+  
+    const optIn =async (appid) => {
+
+      let escrowaddress = localStorage.getItem("escrow");
+      let accountInfoResponse = await algodClient.accountInformation(escrowaddress).do();
+      console.log("account",accountInfoResponse);
+      let assetId3 = accountInfoResponse.assets[2]['asset-id'];
+      console.log('Asset 3 ID: ', accountInfoResponse.assets[2]['asset-id']);
+
+      let index = parseInt(appid);
+      let sender = localStorage.getItem("walletAddress");
+      
+      try {
+        const params = await algodClient.getTransactionParams().do();
+  
+        let optinTranscation = algosdk.makeApplicationOptInTxnFromObject({
+          from:sender,
+          suggestedParams:params,
+          appIndex:index
+        });
+          
+        const signedTx1 = await myAlgoWallet.signTransaction(optinTranscation.toByte());
+        const response = await algodClient.sendRawTransaction(signedTx1.blob).do();
+        console.log("TxID", JSON.stringify(response, null, 1));
+        await waitForConfirmation(algodClient, response.txId);
+        setShowMintButton(true);
+      } catch (err) {
+        console.error(err);
+      }
+  }
   
     return (
       <div
@@ -892,85 +1045,73 @@ function Swap() {
        
         <Container>
           <Row className="justify-content-md-center">
-            <Col xs lg="4"></Col>
-            <Col xs lg="5">
-              <h1>Swapping</h1>
+            <Col xs lg="3"></Col>
+            <Col xs lg="6">
+              <h1>Pair Assets for Pooling</h1>
             </Col>          
             <Col xs lg="3"></Col>
           </Row>
           <br/>
-          <br/>            
-            {!swapbutton ?<div><Row className="justify-content-md-center">
-              <Col xs lg="4" className = "text-right">Select Asset 1 : </Col>
-              <Col xs lg="2">
-                <input type="number" name="Asset1" placeholder="Enter Asset 1" onChange={event => settoken1(event.target.value)} />           
-            </Col> 
-            <Col xs lg="4"></Col>
-            </Row>
-            <br/>
-            <Row className="justify-content-md-center">
-              <Col xs lg="4" className = "text-right">Select Asset 2 : </Col>
-              <Col xs lg="2">
-                <input type="number" placeholder="Enter Asset 2" onChange={event => settoken2(event.target.value)} />
-            </Col>
-            <Col xs lg="4"></Col>
-            </Row></div>
-            :
-            <div><Row className="justify-content-md-center">
-              <Col xs lg="4" className = "text-right">Enter Asset 1 Amount : </Col>
-              <Col xs lg="2">
-                <input type="number" name="Amount1" placeholder="Enter Asset 1 Amount" autoComplete='off' onChange={event => setvalue(event.target.value)} />           
-            </Col> 
-            <Col xs lg="4"></Col>
-            </Row>
-            <br/>
-            <Row className="justify-content-md-center">
-            <Col xs lg="4" className = "text-right">Asset 2 Amount : </Col>
-            <Col xs lg="2">
-                <input type="number" placeholder="Asset 2 Amount" value={samount} readOnly />
-            </Col> 
-             <Col xs lg="4"></Col>
-             </Row> </div> 
-              }
           <br/>
           <Row className="justify-content-md-center">
+            <Col xs lg="5" className = "text-right">Select Asset 1 : </Col>
+            <Col xs lg="2">
+                <input type="number" placeholder="Enter Asset 1" onChange={event => settoken1(event.target.value)} />           
+            </Col>          
             <Col xs lg="5"></Col>
-            {!swapbutton ?
-              <Col xs lg="4">
-              <Button variant="primary" onClick={()=>selecttoken(53434408)}>Confirm</Button>
-              </Col> 
-            :null}
-            {swapbutton ?
-              <Col xs lg="4">
-              <Button variant="primary" onClick={()=>swap(53434408,swapamount)}>Swap</Button>
-              </Col> 
-            :null}
-                     
+          </Row>        
+          <br/>
+          <Row className="justify-content-md-center">
+            <Col xs lg="5" className = "text-right">Select Asset 2 : </Col>
+            <Col xs lg="2">
+                <input type="number" placeholder="Enter Asset 2" onChange={event => settoken2(event.target.value)} />
+            </Col>          
+            <Col xs lg="5"></Col>
+          </Row>
+          <br/>
+          { !showOptInButton ?  <Row className="justify-content-md-center">
+            <Col xs lg="5"></Col>
+            <Col xs lg="2">
+              <Button variant="primary" onClick={()=>bootstrap(53434408)}>Create this Pool</Button>
+            </Col>          
+            <Col xs lg="5"></Col>
+          </Row> : null }
+          <br/>
+          { showOptInButton && !showMintButton?  <Row className="justify-content-md-center">
+            <Col xs lg="5"></Col>
+            <Col xs lg="2">
+              <Button variant="primary" onClick={()=>optIn(53434408)}>OptIn</Button>
+            </Col>          
+            <Col xs lg="5"></Col>
+          </Row> : null }
+          { showMintButton ? 
+          <div><h1 className="text-center"> Add Liqudity </h1><br />
+          <Row className="justify-content-md-center" >
+            <Col xs lg="5" className = "text-right">Asset 1 Amount : </Col>
+            <Col xs lg="4">
+                <input type="number" placeholder="Enter Amount 1" onChange={event => set_input1(event.target.value)} />
+            </Col>
             <Col xs lg="3"></Col>
-          </Row>   
-          <ToastContainer position="bottom-end" className="p-3">
-            <Toast
-                className="d-inline-block m-1"
-                bg="light"
-                key="6"
-                onClose={() => setShow(false)}
-                show={show}
-                delay={3000}                
-                >
-                <Toast.Header>
-                    <img
-                    src="holder.js/20x20?text=%20"
-                    className="rounded me-2"
-                    alt=""
-                    />
-                    <strong className="me-auto">Element Swap</strong>
-                </Toast.Header>
-                <Toast.Body>Asset swapped with Transaction Id : {txId}</Toast.Body>
-                </Toast>
-            </ToastContainer>     
+          </Row>
+          <br />
+          <Row className="justify-content-md-center" >
+            <Col xs lg="5" className = "text-right">Asset 2 Amount : </Col>
+            <Col xs lg="4">
+                  <input type="number" placeholder="Enter Amount 2" onChange={event => set_input2(event.target.value)} />
+            </Col>
+            <Col xs lg="3"></Col>
+          </Row>
+          <br />
+          <Row className="justify-content-md-center" >
+            <Col xs lg="6" className = "text-right"></Col>
+            <Col xs lg="3">
+            <Button variant="primary" onClick={()=>mint(53434408)}>Add Liquidity</Button>
+            </Col>
+            <Col xs lg="3"></Col>
+          </Row></div> : null }
         </Container>
       </div>
     );
   };
 
-  export default Swap;
+  export default Pool;

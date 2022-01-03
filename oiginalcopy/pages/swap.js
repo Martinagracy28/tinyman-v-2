@@ -7,9 +7,6 @@ import Container from "react-bootstrap/Container";
 import Button from "react-bootstrap/Button";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import Toast from "react-bootstrap/Toast";
-import ToastContainer from "react-bootstrap/ToastContainer";
-import "./../bootstrap.min.css";
 
 const myAlgoWallet = new MyAlgoConnect();
 const algodClient = new algosdk.Algodv2('', 'https://api.testnet.algoexplorer.io', '');
@@ -681,8 +678,6 @@ function Swap() {
     const[swapamount,set_inp_goal] = useState("");
     const[samount,sets] = useState("");
     const[swapbutton,setswapbutton] = useState("");
-    const[txId, setTxId] = useState("");
-    const [show, setShow] = useState(false);
      
     const waitForConfirmation = async function (algodclient, txId) {
       let status = await algodclient.status().do();
@@ -855,8 +850,7 @@ function Swap() {
         
     const response = await algodClient.sendRawTransaction([signedTxnarray[0].blob, signedTx2.blob, signedTxnarray[1].blob, signedTx4.blob]).do();
     console.log("TxID", JSON.stringify(response, null, 1));
-    setTxId(response.txId);
-    setShow(true);
+    alert("swap confirmed", JSON.stringify(response, null, 1))
     await waitForConfirmation(algodClient, response.txId);
       } catch (err) {
         console.error(err);
@@ -865,18 +859,18 @@ function Swap() {
 
     function setvalue(asset_in_amount){
 
-        set_inp_goal(asset_in_amount);
+        set_inp_goal(asset_in_amount * 1000000);
         let k = s1 * s2 ;
         console.log(s1)
-        let asset_in_amount_minus_fee = (asset_in_amount * 997) / 1000
+        let asset_in_amount_minus_fee = ((asset_in_amount * 1000000) * 997) / 1000
             
-        let swap_fees = asset_in_amount - asset_in_amount_minus_fee
+        let swap_fees = (asset_in_amount * 1000000)- asset_in_amount_minus_fee
             
         let l = asset_in_amount_minus_fee - swap_fees;
         let asset_out_amount = s2 - (k / (s1 + l ))   
         console.log("s",asset_out_amount);
         
-        sets(asset_out_amount);
+        sets(asset_out_amount/1000000);
     
     }
   
@@ -892,82 +886,63 @@ function Swap() {
        
         <Container>
           <Row className="justify-content-md-center">
-            <Col xs lg="4"></Col>
-            <Col xs lg="5">
+            <Col xs lg="3"></Col>
+            <Col xs lg="6">
               <h1>Swapping</h1>
             </Col>          
             <Col xs lg="3"></Col>
           </Row>
           <br/>
-          <br/>            
-            {!swapbutton ?<div><Row className="justify-content-md-center">
-              <Col xs lg="4" className = "text-right">Select Asset 1 : </Col>
+          <br/>
+          <Row className="justify-content-md-center">
+            <Col xs lg="4" className = "text-right">Select Asset 1 : </Col>
+            {!swapbutton ? <div>
               <Col xs lg="2">
-                <input type="number" name="Asset1" placeholder="Enter Asset 1" onChange={event => settoken1(event.target.value)} />           
+                <input type="number" placeholder="Enter Asset 1" onChange={event => settoken1(event.target.value)} />           
             </Col> 
+            </div>
+            :<div>
+              <Col xs lg="2">
+                <input type="number" placeholder="Enter Asset 1 Amount" onChange={event => setvalue(event.target.value)} />           
+            </Col> 
+              </div>}
+            
+                    
             <Col xs lg="4"></Col>
-            </Row>
-            <br/>
-            <Row className="justify-content-md-center">
-              <Col xs lg="4" className = "text-right">Select Asset 2 : </Col>
+          </Row>        
+          <br/>
+          <Row className="justify-content-md-center">
+            <Col xs lg="4" className = "text-right">Select Asset 2 : </Col>
+            {!swapbutton ? <div>
               <Col xs lg="2">
                 <input type="number" placeholder="Enter Asset 2" onChange={event => settoken2(event.target.value)} />
             </Col>
-            <Col xs lg="4"></Col>
-            </Row></div>
-            :
-            <div><Row className="justify-content-md-center">
-              <Col xs lg="4" className = "text-right">Enter Asset 1 Amount : </Col>
-              <Col xs lg="2">
-                <input type="number" name="Amount1" placeholder="Enter Asset 1 Amount" autoComplete='off' onChange={event => setvalue(event.target.value)} />           
-            </Col> 
-            <Col xs lg="4"></Col>
-            </Row>
-            <br/>
-            <Row className="justify-content-md-center">
-            <Col xs lg="4" className = "text-right">Asset 2 Amount : </Col>
+            </div>:<div>
             <Col xs lg="2">
                 <input type="number" placeholder="Asset 2 Amount" value={samount} readOnly />
             </Col> 
-             <Col xs lg="4"></Col>
-             </Row> </div> 
+              </div>
               }
+              
+                    
+            <Col xs lg="4"></Col>
+          </Row>
           <br/>
           <Row className="justify-content-md-center">
-            <Col xs lg="5"></Col>
-            {!swapbutton ?
+            <Col xs lg="4"></Col>
+            {!swapbutton ? <div>
               <Col xs lg="4">
               <Button variant="primary" onClick={()=>selecttoken(53434408)}>Confirm</Button>
               </Col> 
-            :null}
-            {swapbutton ?
+            </div>:null}
+            {swapbutton ?<div>
               <Col xs lg="4">
               <Button variant="primary" onClick={()=>swap(53434408,swapamount)}>Swap</Button>
               </Col> 
-            :null}
+            </div>:null}
                      
-            <Col xs lg="3"></Col>
-          </Row>   
-          <ToastContainer position="bottom-end" className="p-3">
-            <Toast
-                className="d-inline-block m-1"
-                bg="light"
-                key="6"
-                onClose={() => setShow(false)}
-                show={show}
-                delay={3000}                
-                >
-                <Toast.Header>
-                    <img
-                    src="holder.js/20x20?text=%20"
-                    className="rounded me-2"
-                    alt=""
-                    />
-                    <strong className="me-auto">Element Swap</strong>
-                </Toast.Header>
-                <Toast.Body>Asset swapped with Transaction Id : {txId}</Toast.Body>
-                </Toast>
-            </ToastContainer>     
+            <Col xs lg="5"></Col>
+          </Row>        
         </Container>
       </div>
     );

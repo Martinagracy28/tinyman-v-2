@@ -1,5 +1,5 @@
 import "./App.css";
-import "./bootstrap.min.css";
+// import "./bootstrap.min.css";
 //import 'bootstrap/dist/css/bootstrap.min.css'
 import React from "react";
 import MyAlgoConnect from "@randlabs/myalgo-connect";
@@ -47,7 +47,7 @@ function App() {
               height="40"
               className="d-inline-block App-logo"
             />{" "}
-            Element Swap
+            Tinyman
           </Navbar.Brand>
           <Navbar.Toggle aria-controls="responsive-navbar-nav" />
           <Navbar.Collapse id="responsive-navbar-nav">
