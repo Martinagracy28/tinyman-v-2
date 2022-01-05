@@ -683,6 +683,7 @@ function Burn() {
     const[swapbutton,setswapbutton] = useState("");
     const[txId, setTxId] = useState("");
     const [show, setShow] = useState(false);
+    const[liquidity_asset_in,setLiquidityassetin] = useState("");
      
     const waitForConfirmation = async function (algodclient, txId) {
       let status = await algodclient.status().do();
@@ -759,7 +760,7 @@ function Burn() {
       readLocalState(algodClient,localStorage.getItem("escrow"),52397037)
     }
 
-    const swap = async (appid,asset_in_amount) => {
+    const burn = async (appid,asset_in_amount) => {
  
       let index = parseInt(appid);
       console.log("appId inside donate", index);
@@ -786,13 +787,11 @@ function Burn() {
 
       readLocalState(algodClient,escrowaddress,appId);
      console.log(s1)
-      let k = s1 * s2 ;
-      let asset_in_amount_minus_fee = (asset_in_amount * 997) / 1000
-          
-      let swap_fees = asset_in_amount - asset_in_amount_minus_fee
-          
-      let l = asset_in_amount_minus_fee - swap_fees;
-      let asset_out_amount = s2 - (k / (s1 + l ))   
+      
+     let asset1_amount = (liquidity_asset_in * s1) / ilt ;
+     let asset2_amount = (liquidity_asset_in * s2) / ilt ;
+     let asset1_amount_out = asset1_amount - (asset1_amount * 0.5)
+     let asset2_amount_out = asset2_amount - (asset2_amount * 0.5)
       
       try {
 
@@ -800,7 +799,7 @@ function Burn() {
         
         let sender = localStorage.getItem("walletAddress");
         let recv_escrow = lsig.address();
-        let amount = 2000;
+        let amount = 3000;
         
         let transaction1 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
           from: sender, 
@@ -810,8 +809,8 @@ function Burn() {
          });
        
          let appArg = [];
-         appArg.push(new Uint8Array(Buffer.from("swap")));
-         appArg.push(new Uint8Array(Buffer.from("fi")));
+         appArg.push(new Uint8Array(Buffer.from("burn")));
+        //  appArg.push(new Uint8Array(Buffer.from("fi")));
 
          let foreignassets = [];
 
@@ -845,22 +844,22 @@ function Burn() {
            let transaction4;
            if(parseInt(tokenid1)==0){
             transaction3 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-              from: sender,
-              to: recv_escrow,
+              from: recv_escrow,
+              to: sender,
               note: undefined,
               accounts:sender,
-              amount: parseInt(asset_in_amount), 
+              amount:parseInt(parseInt(asset1_amount_out.toFixed(0))), 
               suggestedParams: params
             });
            }
            else{
             transaction3 = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-              from: sender,
-              to: recv_escrow,
+              from: recv_escrow,
+              to: sender,
               assetIndex: parseInt(tokenid1),
               note: undefined,
               accounts:sender,
-              amount: parseInt(asset_in_amount), 
+              amount: parseInt(parseInt(asset1_amount_out.toFixed(0))), 
               suggestedParams: params
             });
            }
@@ -871,7 +870,7 @@ function Burn() {
               to: sender,               
               note: undefined,
               accounts: recv_escrow,
-              amount: parseInt(parseInt(asset_out_amount).toFixed(0)),
+              amount: parseInt(asset2_amount_out.toFixed(0)),
               suggestedParams: params
             });
           }
@@ -882,21 +881,39 @@ function Burn() {
               assetIndex:parseInt(tokenid2), 
               note: undefined,
               accounts: recv_escrow,
-              amount: parseInt(parseInt(asset_out_amount).toFixed(0)),
+              amount: parseInt(asset2_amount_out.toFixed(0)),
               suggestedParams: params
             });
-          }
+        }
+                let foreignassetliquidity =[];
+              foreignassetliquidity.push(parseInt(assetId3));
+              // let decAddr = algosdk.decodeAddress(recv_escrow);
+              // let acc =[];
+              // acc.push(decAddr.publicKey);
+              const transaction5 = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+                from: sender ,
+                to:recv_escrow ,
+                assetIndex: parseInt(assetId3),
+                note: undefined,
+                accounts: [recv_escrow],
+                appAccounts:recv_escrow,
+                foreignAssets:foreignassetliquidity,
+                amount: parseInt(parseInt(liquidity_asset_in).toFixed(0)),
+                suggestedParams: params
+              });
+         
           
           
-        const groupID = algosdk.computeGroupID([ transaction1, transaction2, transaction3, transaction4]);
-        const txs = [ transaction1, transaction2, transaction3, transaction4];
+        const groupID = algosdk.computeGroupID([ transaction1, transaction2, transaction3, transaction4, transaction5]);
+        const txs = [ transaction1, transaction2, transaction3, transaction4, transaction5];
         for (let i = 0; i <= 3; i++) txs[i].group = groupID;
       
         const signedTx2 = algosdk.signLogicSigTransaction(txs[1], lsig);
+        const signedTx3 = algosdk.signLogicSigTransaction(txs[2], lsig);
         const signedTx4 = algosdk.signLogicSigTransaction(txs[3], lsig);
-        const signedTxnarray = await myAlgoWallet.signTransaction([txs[0].toByte(),txs[2].toByte()]);
+        const signedTxnarray = await myAlgoWallet.signTransaction([txs[0].toByte(),txs[4].toByte()]);
         
-    const response = await algodClient.sendRawTransaction([signedTxnarray[0].blob, signedTx2.blob, signedTxnarray[1].blob, signedTx4.blob]).do();
+    const response = await algodClient.sendRawTransaction([signedTxnarray[0].blob, signedTx2.blob, signedTx2.blob, signedTx4.blob,signedTxnarray[1].blob]).do();
     console.log("TxID", JSON.stringify(response, null, 1));
     setTxId(response.txId);
     setShow(true);
@@ -962,17 +979,17 @@ function Burn() {
             <div><Row className="justify-content-md-center">
               <Col xs lg="4" className = "text-right">Enter Asset 1 Amount : </Col>
               <Col xs lg="2">
-                <input type="number" name="Amount1" placeholder="Enter Asset 1 Amount" autoComplete='off' onChange={event => setvalue(event.target.value)} />           
+                <input type="number" name="Amount1" placeholder="Enter Asset 1 Amount" autoComplete='off' onChange={event => setLiquidityassetin((event.target.value) * 1000000)} />           
             </Col> 
             <Col xs lg="4"></Col>
             </Row>
             <br/>
             <Row className="justify-content-md-center">
-            <Col xs lg="4" className = "text-right">Asset 2 Amount : </Col>
+            {/* <Col xs lg="4" className = "text-right">Asset 2 Amount : </Col>
             <Col xs lg="2">
                 <input type="number" placeholder="Asset 2 Amount" value={samount}  />
             </Col> 
-             <Col xs lg="4"></Col>
+             <Col xs lg="4"></Col> */}
              </Row> </div> 
               }
           <br/>
@@ -985,7 +1002,7 @@ function Burn() {
             :null}
             {swapbutton ?
               <Col xs lg="4">
-              <Button variant="primary" onClick={()=>swap(52397037,swapamount)}>Swap</Button>
+              <Button variant="primary" onClick={()=>burn(52397037,liquidity_asset_in)}>Burn</Button>
               </Col> 
             :null}
                      
