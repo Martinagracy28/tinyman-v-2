@@ -60,7 +60,7 @@ int appl // ApplicationCall
 assert
 
 gtxn 1 ApplicationID
-int 53434408
+int 52397037
 ==
 assert
 
@@ -754,7 +754,7 @@ function Swap() {
         ""
       );
       
-      readLocalState(algodClient,localStorage.getItem("escrow"),53434408)
+      readLocalState(algodClient,localStorage.getItem("escrow"),52397037)
     }
 
     const swap = async (appid,asset_in_amount) => {
@@ -937,12 +937,12 @@ function Swap() {
             <Col xs lg="5"></Col>
             {!swapbutton ?
               <Col xs lg="4">
-              <Button variant="primary" onClick={()=>selecttoken(53434408)}>Confirm</Button>
+              <Button variant="primary" onClick={()=>selecttoken(52397037)}>Confirm</Button>
               </Col> 
             :null}
             {swapbutton ?
               <Col xs lg="4">
-              <Button variant="primary" onClick={()=>swap(53434408,swapamount)}>Swap</Button>
+              <Button variant="primary" onClick={()=>swap(52397037,swapamount)}>Swap</Button>
               </Col> 
             :null}
                      
