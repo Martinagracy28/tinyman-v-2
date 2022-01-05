@@ -766,7 +766,7 @@ function Swap() {
         
       let replacedData = data.replaceAll("Token1",tokenid1).replaceAll("Token2",tokenid2).replaceAll("appId",appId);
       let results = await algodClient.compile(replacedData).do();
-      // console.log(replacedData)
+   console.log("data")
 
       console.log("Hash = " + results.hash);
       console.log("Result = " + results.result);
@@ -774,8 +774,8 @@ function Swap() {
       console.log("escrow",escrowaddress)
       let accountInfoResponse = await algodClient.accountInformation(escrowaddress).do();
       console.log("account",accountInfoResponse);
-      let assetId3 = accountInfoResponse.assets[2]['asset-id'];
-      console.log('Asset 3 ID: ', accountInfoResponse.assets[2]['asset-id']);
+      let assetId3 = accountInfoResponse['created-assets'][0]['index'];
+      console.log('Asset 3 ID: ', assetId3);
   
       let program = new Uint8Array(Buffer.from(results.result, "base64"));
   
@@ -812,9 +812,24 @@ function Swap() {
          appArg.push(new Uint8Array(Buffer.from("fi")));
 
          let foreignassets = [];
-         foreignassets.push(parseInt(tokenid1));
-         foreignassets.push(parseInt(tokenid2));
-         foreignassets.push(parseInt(assetId3));
+
+         if(parseInt(tokenid1)==0){
+          // foreignassets.push(parseInt(tokenid1));
+          foreignassets.push(parseInt(tokenid2));
+          foreignassets.push(parseInt(assetId3));
+         }
+         else if(parseInt(tokenid2)==0){
+          foreignassets.push(parseInt(tokenid1));
+          // foreignassets.push(parseInt(tokenid2));
+          foreignassets.push(parseInt(assetId3));
+         }
+         else{
+          foreignassets.push(parseInt(tokenid1));
+          foreignassets.push(parseInt(tokenid2));
+          foreignassets.push(parseInt(assetId3));
+         }
+         
+         
          const transaction2 = algosdk.makeApplicationNoOpTxnFromObject({
              from: recv_escrow, 
              appIndex: index,
@@ -824,26 +839,52 @@ function Swap() {
              foreignAssets:foreignassets,
              suggestedParams: params
            });
-  
-          const transaction3 = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-            from: sender,
-            to: recv_escrow,
-            assetIndex: parseInt(tokenid1),
-            note: undefined,
-            accounts:sender,
-            amount: parseInt(asset_in_amount), 
-            suggestedParams: params
-          });
-
-          const transaction4 = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-            from: recv_escrow ,
-            to: sender,
-            assetIndex:parseInt(tokenid2), 
-            note: undefined,
-            accounts: recv_escrow,
-            amount: parseInt(parseInt(asset_out_amount).toFixed(0)),
-            suggestedParams: params
-          });
+           let transaction3;
+           let transaction4;
+           if(parseInt(tokenid1)==0){
+            transaction3 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+              from: sender,
+              to: recv_escrow,
+              note: undefined,
+              accounts:sender,
+              amount: parseInt(asset_in_amount), 
+              suggestedParams: params
+            });
+           }
+           else{
+            transaction3 = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+              from: sender,
+              to: recv_escrow,
+              assetIndex: parseInt(tokenid1),
+              note: undefined,
+              accounts:sender,
+              amount: parseInt(asset_in_amount), 
+              suggestedParams: params
+            });
+           }
+          
+          if(parseInt(tokenid2)==0){
+           transaction4 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+              from: recv_escrow ,
+              to: sender,               
+              note: undefined,
+              accounts: recv_escrow,
+              amount: parseInt(parseInt(asset_out_amount).toFixed(0)),
+              suggestedParams: params
+            });
+          }
+          else{
+            transaction4 = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+              from: recv_escrow ,
+              to: sender,
+              assetIndex:parseInt(tokenid2), 
+              note: undefined,
+              accounts: recv_escrow,
+              amount: parseInt(parseInt(asset_out_amount).toFixed(0)),
+              suggestedParams: params
+            });
+          }
+          
           
         const groupID = algosdk.computeGroupID([ transaction1, transaction2, transaction3, transaction4]);
         const txs = [ transaction1, transaction2, transaction3, transaction4];
@@ -927,7 +968,7 @@ function Swap() {
             <Row className="justify-content-md-center">
             <Col xs lg="4" className = "text-right">Asset 2 Amount : </Col>
             <Col xs lg="2">
-                <input type="number" placeholder="Asset 2 Amount" value={samount} readOnly />
+                <input type="number" placeholder="Asset 2 Amount" value={samount}  />
             </Col> 
              <Col xs lg="4"></Col>
              </Row> </div> 
