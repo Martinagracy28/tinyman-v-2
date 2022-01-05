@@ -8,6 +8,8 @@ import Navbar from "react-bootstrap/Navbar";
 import Container from "react-bootstrap/Container";
 import Button from "react-bootstrap/Button";
 import Nav from "react-bootstrap/Nav";
+
+import { useEffect } from "react";
 // import Toast from "react-bootstrap/Toast";
 // import ToastContainer from "react-bootstrap/ToastContainer";
 import logo from "./logo.png";
@@ -31,9 +33,24 @@ function App() {
       console.error(err);
     }
   };
+  const wallet = async() => {
+    let v = localStorage.getItem("walletAddress");
+    if(v){
+      setShowButton(false)
+    }
+    else{
+      setShowButton(true)
+    }
+  }
+  useEffect(() =>{wallet()},[localStorage.getItem("walletAddress")])
 
   const [showButton, setShowButton] = useState(true);
   let walletAddress = localStorage.getItem("walletAddress");
+
+  const disconnect = async() => {
+    localStorage.setItem("walletAddress", "");
+    setShowButton(true)
+  }
 
   return (
     <Router>
@@ -67,7 +84,7 @@ function App() {
           </Navbar.Collapse>
           { showButton ? <Button variant="light" onClick={() => connect()}>
             Connect to Wallet
-          </Button> : <Button variant="light" disabled>{walletAddress.substring(0, 6)}...{walletAddress.substring(walletAddress.length -4, walletAddress.length)}</Button>}
+          </Button> : <Button variant="light"  onClick={() => disconnect()}>{(localStorage.getItem("walletAddress")).substring(0, 6)}...{(localStorage.getItem("walletAddress")).substring((localStorage.getItem("walletAddress")).length -4, (localStorage.getItem("walletAddress")).length)}</Button>}
           
         </Container>
       </Navbar>
