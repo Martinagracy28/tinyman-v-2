@@ -16,6 +16,7 @@ import logo from "./logo.png";
 import Home from "./pages/home";
 import Pool from "./pages/pool";
 import Swap from "./pages/swap";
+import Burn from "./pages/burn";
 import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
 
 const myAlgoWallet = new MyAlgoConnect();
@@ -80,6 +81,12 @@ function App() {
                       Swap
                   </Button>
               </Link>
+              &nbsp;&nbsp;&nbsp;
+              <Link to="/burn">
+                  <Button variant="light">
+                      Remove Liquidity
+                  </Button>
+              </Link>
             </Nav>
           </Navbar.Collapse>
           { showButton ? <Button variant="light" onClick={() => connect()}>
@@ -100,6 +107,9 @@ function App() {
         </Route>
         <Route path="/swap">
           <Swap />
+        </Route>
+        <Route path="/burn">
+          <Burn />
         </Route>
       </Switch>
     </Router>

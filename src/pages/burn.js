@@ -670,7 +670,7 @@ check_fees:
     >=
     return`;
   
-function Swap() {
+function Burn() {
 
     const [s1, sets1] = useState("");
     const [s2, sets2] = useState("");
@@ -738,16 +738,18 @@ function Swap() {
       console.log("appId inside donate", index);
 
       setAppId(appid);
-      let replacedData = data.replaceAll("Token1",tokenid1).replaceAll("Token2",tokenid2).replaceAll("appId",appId);
+      let replacedData = data.replaceAll("Token1",tokenid1);
+      let replacedData2 = replacedData.replaceAll("Token2",tokenid2);
+      let replacedData3 = replacedData2.replaceAll("appId",appId);
      console.log("compiling")
-      let results = await algodClient.compile(replacedData).do();
+      let results = await algodClient.compile(replacedData3).do();
       localStorage.setItem("escrow",results.hash);
       readLocalState(algodClient,results.hash,appId);
       setswapbutton(true);
 
     } 
     useEffect(() =>{first()},[s1,s2])
-    const first = async() =>{
+    const first = () =>{
       const algodClient = new algosdk.Algodv2(
         "",
         "https://api.testnet.algoexplorer.io",
@@ -935,7 +937,7 @@ function Swap() {
           <Row className="justify-content-md-center">
             <Col xs lg="4"></Col>
             <Col xs lg="5">
-              <h1>Swapping</h1>
+              <h1>Remove Liquidity</h1>
             </Col>          
             <Col xs lg="3"></Col>
           </Row>
@@ -960,7 +962,7 @@ function Swap() {
             <div><Row className="justify-content-md-center">
               <Col xs lg="4" className = "text-right">Enter Asset 1 Amount : </Col>
               <Col xs lg="2">
-                <input type="number" name="Amount1" placeholder="Enter Asset 1 Amount" autoComplete='off' onChange={event => setvalue((event.target.value)* 1000000)} />           
+                <input type="number" name="Amount1" placeholder="Enter Asset 1 Amount" autoComplete='off' onChange={event => setvalue(event.target.value)} />           
             </Col> 
             <Col xs lg="4"></Col>
             </Row>
@@ -968,7 +970,7 @@ function Swap() {
             <Row className="justify-content-md-center">
             <Col xs lg="4" className = "text-right">Asset 2 Amount : </Col>
             <Col xs lg="2">
-                <input type="number" placeholder="Asset 2 Amount" value={parseInt(samount)/1000000}  />
+                <input type="number" placeholder="Asset 2 Amount" value={samount}  />
             </Col> 
              <Col xs lg="4"></Col>
              </Row> </div> 
@@ -1014,4 +1016,4 @@ function Swap() {
     );
   };
 
-  export default Swap;
+  export default Burn;
