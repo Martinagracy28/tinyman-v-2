@@ -13,7 +13,7 @@ import "./../bootstrap.min.css";
 
 const myAlgoWallet = new MyAlgoConnect();
 const algodClient = new algosdk.Algodv2('', 'https://api.testnet.algoexplorer.io', '');
-
+let appID_global = 56793097;
 let data = `#pragma version 4
     
 // Element Pool LogicSig
@@ -679,8 +679,7 @@ function Swap() {
     const [tokenid2,settoken2] = useState("");
     const [appId,setAppId] = useState("");
     const[swapamount,set_inp_goal] = useState("");
-    const[samount1,setsamount1] = useState("");
-    const[samount2,setsamount2] = useState("");
+    const[samount,sets] = useState("");
     const[swapbutton,setswapbutton] = useState("");
     const[txId, setTxId] = useState("");
     const [show, setShow] = useState(false);
@@ -713,60 +712,56 @@ function Swap() {
     async function readLocalState(client, account, index1){
         let accountInfoResponse = await client.accountInformation(account).do();
         console.log("accinfo",accountInfoResponse);
-        for(let i = 0; i< accountInfoResponse['apps-local-state'][0]['key-value'].length;i++){
-            if(accountInfoResponse['apps-local-state'][0]['key-value'][i]['key'] === "czE="){
-             sets1(accountInfoResponse['apps-local-state'][0]['key-value'][i]['value']['uint'])
-             console.log(accountInfoResponse['apps-local-state'][0]['key-value'][i]['value']['uint'])
-            }
-            else if(accountInfoResponse['apps-local-state'][0]['key-value'][i]['key'] === "czI="){
-             sets2(accountInfoResponse['apps-local-state'][0]['key-value'][i]['value']['uint'])
-             console.log(accountInfoResponse['apps-local-state'][0]['key-value'][i]['value']['uint'])
-            }
-            else if(accountInfoResponse['apps-local-state'][0]['key-value'][i]['key'] ===  "aWx0"){
-             setilt(accountInfoResponse['apps-local-state'][0]['key-value'][i]['value']['uint'])
-             console.log(accountInfoResponse['apps-local-state'][0]['key-value'][i]['value']['uint'])
-            }
-          }
-        // for (let i = 0; i < accountInfoResponse['apps-local-state'].length; i++) { 
-        //   if (accountInfoResponse['apps-local-state'][i].id == index1) {
-        //       console.log("Application's global state:");
-        //       for (let n = 0; n < accountInfoResponse['apps-local-state'][i]['key-value'].length; n++) {
-        //          // console.log(accountInfoResponse['apps-local-state'][i]['key-value']);
-        //           let enc = accountInfoResponse['apps-local-state'][i]['key-value'][n];
-        //           if(enc['key'] === "czE="){
-        //             sets1(enc.value.uint)
-        //           }
-        //           if(enc['key'] === "czI="){
-        //             sets2(enc.value.uint)
-        //           }
-        //           if(enc['key'] === "aWx0"){
-        //             setilt(enc.value.uint)
-        //           }             
-        //       }
+       console.log("localstate",accountInfoResponse['apps-local-state'][0]['key-value'])
+       for(let i = 0; i< accountInfoResponse['apps-local-state'][0]['key-value'].length;i++){
+         if(accountInfoResponse['apps-local-state'][0]['key-value'][i]['key'] === "czE="){
+          sets1(accountInfoResponse['apps-local-state'][0]['key-value'][i]['value']['uint'])
+          console.log(accountInfoResponse['apps-local-state'][0]['key-value'][i]['value']['uint'])
+         }
+         else if(accountInfoResponse['apps-local-state'][0]['key-value'][i]['key'] === "czI="){
+          sets2(accountInfoResponse['apps-local-state'][0]['key-value'][i]['value']['uint'])
+          console.log(accountInfoResponse['apps-local-state'][0]['key-value'][i]['value']['uint'])
+         }
+         else if(accountInfoResponse['apps-local-state'][0]['key-value'][i]['key'] ===  "aWx0"){
+          setilt(accountInfoResponse['apps-local-state'][0]['key-value'][i]['value']['uint'])
+          console.log(accountInfoResponse['apps-local-state'][0]['key-value'][i]['value']['uint'])
+         }
+       }
+      //   for (let i = 0; i < accountInfoResponse['apps-local-state'].length; i++) { 
+      //     if (accountInfoResponse['apps-local-state'][i].id == index1) {
+      //         console.log("Application's global state:");
+      //         for (let n = 0; n < accountInfoResponse['apps-local-state'][i]['key-value'].length; n++) {
+      //            // console.log(accountInfoResponse['apps-local-state'][i]['key-value']);
+      //             let enc = accountInfoResponse['apps-local-state'][i]['key-value'][n];
+      //             if(enc['key'] === "czE="){
+      //               sets1(enc.value.uint)
+      //               console.log(s1)
+      //             }
+      //             if(enc['key'] === "czI="){
+      //               sets2(enc.value.uint)
+      //             }
+      //             if(enc['key'] === "aWx0"){
+      //               setilt(enc.value.uint)
+      //             }             
+      //         }
               
-    //        }
-    //   }
+      //     }
+      // }
     }
     const selecttoken = async(appid) =>{
       let index = parseInt(appid);
       console.log("appId inside donate", index);
-      let t1,t2;
-      if(tokenid1 > tokenid2 ){
-          t1 = tokenid1;
-          t2 = tokenid2;
-          
-      }
-      else{
-          t1 = tokenid2;
-          t2 = tokenid1;
-          
-      }
-
+      console.log(tokenid1,tokenid2);
       setAppId(appid);
-      let replacedData = data.replaceAll("Token1",t1).replaceAll("Token2",t2).replaceAll("appId",appId);
-     console.log("compiling")
+      // let replacedData = data.replaceAll("Token1",tokenid1).replaceAll("Token2",tokenid2).replaceAll("appId",appId);
+    
+      let replacedData = data.replaceAll("Token1",tokenid1).replaceAll("Token2",tokenid2).replaceAll("appId",appId);
+      // let results = await algodClient.compile(replacedData).do();
+
+      console.log("compiling")
       let results = await algodClient.compile(replacedData).do();
       localStorage.setItem("escrow",results.hash);
+      console.log(results.hash);
       readLocalState(algodClient,results.hash,appId);
       setswapbutton(true);
 
@@ -779,7 +774,8 @@ function Swap() {
         ""
       );
       
-      readLocalState(algodClient,localStorage.getItem("escrow"),56830710)
+    //  readLocalState(algodClient,localStorage.getItem("escrow"),appID_global)
+    //  console.log("s1",s1)  
     }
 
     const swap = async (appid,asset_in_amount) => {
@@ -788,17 +784,8 @@ function Swap() {
       console.log("appId inside donate", index);
 
       setAppId(appid);
-      let tt1;
-      let tt2;
-        if(tokenid1 > tokenid2){
-            tt1 =tokenid1;
-            tt2 = tokenid2;
-        }
-        else{
-            tt1 =tokenid2;
-            tt2 = tokenid1;
-        }
-      let replacedData = data.replaceAll("Token1",tt1).replaceAll("Token2",tt2).replaceAll("appId",appId);
+        
+      let replacedData = data.replaceAll("Token1",tokenid1).replaceAll("Token2",tokenid2).replaceAll("appId",appId);
       let results = await algodClient.compile(replacedData).do();
    console.log("data")
 
@@ -808,6 +795,7 @@ function Swap() {
       console.log("escrow",escrowaddress)
       let accountInfoResponse = await algodClient.accountInformation(escrowaddress).do();
       console.log("account",accountInfoResponse);
+
       let assetId3 = accountInfoResponse['created-assets'][0]['index'];
       console.log('Asset 3 ID: ', assetId3);
   
@@ -817,29 +805,14 @@ function Swap() {
       console.log("Escrow =", lsig.address()); 
 
       readLocalState(algodClient,escrowaddress,appId);
-      
      console.log(s1)
-     let r1,r2;
-     let t1 ,t2;
-        if(tokenid1 > tokenid2){
-            r1 = s1;
-            r2 = s2;
-            t1 = tokenid1;
-            t2 = tokenid2;
-        }
-        else{
-            r1 = s2;
-            r2 = s1;
-            t1 = tokenid1;
-            t2 = tokenid2;
-        }    
-      let k = r1 * r2 ;
+      let k = s1 * s2 ;
       let asset_in_amount_minus_fee = (asset_in_amount * 997) / 1000
           
       let swap_fees = asset_in_amount - asset_in_amount_minus_fee
           
       let l = asset_in_amount_minus_fee - swap_fees;
-      let asset_out_amount = r2 - (k / (r1 + l ))   
+      let asset_out_amount = s2 - (k / (s1 + l ))   
       
       try {
 
@@ -862,19 +835,19 @@ function Swap() {
 
          let foreignassets = [];
 
-         if(parseInt(t1)==0){
+         if(parseInt(tokenid1)==0){
           // foreignassets.push(parseInt(tokenid1));
-          foreignassets.push(parseInt(t2));
+          foreignassets.push(parseInt(tokenid2));
           foreignassets.push(parseInt(assetId3));
          }
-         else if(parseInt(t2)==0){
-          foreignassets.push(parseInt(t1));
+         else if(parseInt(tokenid2)==0){
+          foreignassets.push(parseInt(tokenid1));
           // foreignassets.push(parseInt(tokenid2));
           foreignassets.push(parseInt(assetId3));
          }
          else{
-          foreignassets.push(parseInt(t1));
-          foreignassets.push(parseInt(t2));
+          foreignassets.push(parseInt(tokenid1));
+          foreignassets.push(parseInt(tokenid2));
           foreignassets.push(parseInt(assetId3));
          }
          
@@ -890,7 +863,7 @@ function Swap() {
            });
            let transaction3;
            let transaction4;
-           if(parseInt(t1)==0){
+           if(parseInt(tokenid1)==0){
             transaction3 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
               from: sender,
               to: recv_escrow,
@@ -904,7 +877,7 @@ function Swap() {
             transaction3 = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
               from: sender,
               to: recv_escrow,
-              assetIndex: parseInt(t1),
+              assetIndex: parseInt(tokenid1),
               note: undefined,
               accounts:sender,
               amount: parseInt(asset_in_amount), 
@@ -912,7 +885,7 @@ function Swap() {
             });
            }
           
-          if(parseInt(t2)==0){
+          if(parseInt(tokenid2)==0){
            transaction4 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
               from: recv_escrow ,
               to: sender,               
@@ -926,7 +899,7 @@ function Swap() {
             transaction4 = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
               from: recv_escrow ,
               to: sender,
-              assetIndex:parseInt(t2), 
+              assetIndex:parseInt(tokenid2), 
               note: undefined,
               accounts: recv_escrow,
               amount: parseInt(parseInt(asset_out_amount).toFixed(0)),
@@ -953,71 +926,22 @@ function Swap() {
       }
     };
 
-    function setvalueA1(asset_in_amount){
-        let r1,r2;
-        if(tokenid1 > tokenid2){
-            r1 = s1;
-            r2 = s2;
-        }
-        else{
-            r1 = s2;
-            r2 = s1;
-        }
+    function setvalue(asset_in_amount){
+
         set_inp_goal(asset_in_amount);
-        let k = r1 * r2 ;
-        console.log('s1', s1);
-        console.log('s2', s2);
-        let asset_in_amount_minus_fee = (asset_in_amount * 997) / 1000;
-        console.log('asset_in_amount', asset_in_amount);
+        let k = s1 * s2 ;
+        console.log(s2)
+        let asset_in_amount_minus_fee = (asset_in_amount * 997) / 1000
             
-        let swap_fees = asset_in_amount - asset_in_amount_minus_fee;
-        console.log('swap_fees', swap_fees);
+        let swap_fees = asset_in_amount - asset_in_amount_minus_fee
             
         let l = asset_in_amount_minus_fee - swap_fees;
-        console.log('l', l);
-
-        let asset_out_amount = r2 - (k / (r1 + l ))   ;
-
+        let asset_out_amount = s2 - (k / (s1 + l ))   
         console.log("s",asset_out_amount);
         
-        setsamount1(asset_in_amount);
-        setsamount2(asset_out_amount);
+        sets(asset_out_amount);
     
     }
-
-    function setvalueA2(asset_out){
-
-        let r1,r2;
-        if(tokenid1 > tokenid2){
-            r1 = s1;
-            r2 = s2;
-        }
-        else{
-            r1 = s2;
-            r2 = s1;
-        }
-        
-        let k = r1 * r2 ;
-        console.log('s1', s1);
-        console.log('s2', s2);
-        let asset_in_amount_minus_fee = (asset_out * 997) / 1000;
-        console.log('asset_in_amount', asset_out);
-            
-        let swap_fees = asset_out - asset_in_amount_minus_fee;
-        console.log('swap_fees', swap_fees);
-            
-        let l = asset_in_amount_minus_fee - swap_fees;
-        console.log('l', l);
-
-        let asset_out_amount = r2 - (k / (r1 + l ))   ;
-
-        console.log("s",asset_out_amount);
-        set_inp_goal(asset_out_amount);
-        setsamount2(asset_out);
-        setsamount1(asset_out_amount);
-    
-  
-  }
   
     return (
       <div
@@ -1056,9 +980,9 @@ function Swap() {
             </Row></div>
             :
             <div><Row className="justify-content-md-center">
-              <Col xs lg="4" className = "text-right">Asset 1 Amount : </Col>
+              <Col xs lg="4" className = "text-right">Enter Asset 1 Amount : </Col>
               <Col xs lg="2">
-                <input type="number" name="Amount1" placeholder="Asset 1 Amount" autoComplete='off' value={parseInt(samount1)/1000000 == 0 ? '' : parseInt(samount1)/1000000 } onChange={event => setvalueA1((event.target.value)* 1000000)} />           
+                <input type="number" name="Amount1" placeholder="Enter Asset 1 Amount" autoComplete='off' onChange={event => setvalue((event.target.value)* 1000000)} />           
             </Col> 
             <Col xs lg="4"></Col>
             </Row>
@@ -1066,7 +990,7 @@ function Swap() {
             <Row className="justify-content-md-center">
             <Col xs lg="4" className = "text-right">Asset 2 Amount : </Col>
             <Col xs lg="2">
-                <input type="number" name="Amount2" placeholder="Asset 2 Amount" autoComplete='off' value={parseInt(samount2)/1000000 == 0 ? '' : parseInt(samount2)/1000000} onChange={event => setvalueA2((event.target.value)* 1000000)} />
+                <input type="number" placeholder="Asset 2 Amount" value={parseInt(samount)/1000000}  />
             </Col> 
              <Col xs lg="4"></Col>
              </Row> </div> 
@@ -1076,18 +1000,16 @@ function Swap() {
             <Col xs lg="5"></Col>
             {!swapbutton ?
               <Col xs lg="4">
-              <Button variant="primary" onClick={()=>selecttoken(56830710)}>Confirm</Button>
+              <Button variant="primary" onClick={()=>selecttoken(appID_global)}>Confirm</Button>
               </Col> 
             :null}
             {swapbutton ?
               <Col xs lg="4">
-              <Button variant="primary" onClick={()=>swap(56830710,swapamount)}>Swap</Button>
+              <Button variant="primary" onClick={()=>swap(appID_global,swapamount)}>Swap</Button>
               </Col> 
             :null}
                      
-            <Col xs lg="3">
-           
-            </Col>
+            <Col xs lg="3"></Col>
           </Row>   
           <ToastContainer position="bottom-end" className="p-3">
             <Toast

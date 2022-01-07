@@ -17,6 +17,7 @@ import Home from "./pages/home";
 import Pool from "./pages/pool";
 import Swap from "./pages/swap";
 import Burn from "./pages/burn";
+import algosdk from "algosdk";
 import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
 
 const myAlgoWallet = new MyAlgoConnect();
@@ -52,6 +53,70 @@ function App() {
     localStorage.setItem("walletAddress", "");
     setShowButton(true)
   }
+  const waitForConfirmation = async function (algodclient, txId) {
+    let status = await algodclient.status().do();
+    let lastRound = status["last-round"];
+    while (true) {
+      const pendingInfo = await algodclient
+        .pendingTransactionInformation(txId)
+        .do();
+      if (
+        pendingInfo["confirmed-round"] !== null &&
+        pendingInfo["confirmed-round"] > 0
+      ) {
+        //Got the completed Transaction
+        console.log(
+          "Transaction " +
+            txId +
+            " confirmed in round " +
+            pendingInfo["confirmed-round"]
+        );
+        break;
+      }
+      lastRound++;
+      await algodclient.statusAfterBlock(lastRound).do();
+    }
+  };
+  const optin =async () => {
+    const myAlgoWallet = new MyAlgoConnect();
+    const algodClient = new algosdk.Algodv2('', 'https://api.testnet.algoexplorer.io', '');
+    
+    
+    
+    let index = parseInt(56830710);
+    console.log("appId inside donate", index)
+  try {
+   
+    const params = await algodClient.getTransactionParams().do();
+
+    let optinTranscation = algosdk.makeApplicationOptInTxnFromObject({
+      from:localStorage.getItem("walletAddress"),
+      suggestedParams:params,
+      appIndex:index
+    });
+
+    
+      
+      const signedTx1 = await myAlgoWallet.signTransaction(optinTranscation.toByte());
+      
+
+  const response = await algodClient.sendRawTransaction(signedTx1.blob).do();
+  console.log("TxID", JSON.stringify(response, null, 1));
+  await waitForConfirmation(algodClient, response.txId);
+    } catch (err) {
+      console.error(err);
+    }
+
+
+  
+        //  mapTotal();
+        //  mapGoal();
+        
+          
+          // Use the AlgoSigner encoding library to make the transactions base
+          
+  
+    }
 
   return (
     <Router>
@@ -91,7 +156,11 @@ function App() {
           </Navbar.Collapse>
           { showButton ? <Button variant="light" onClick={() => connect()}>
             Connect to Wallet
-          </Button> : <Button variant="light"  onClick={() => disconnect()}>{(localStorage.getItem("walletAddress")).substring(0, 6)}...{(localStorage.getItem("walletAddress")).substring((localStorage.getItem("walletAddress")).length -4, (localStorage.getItem("walletAddress")).length)}</Button>}
+          </Button> :<> <Button variant="light"  onClick={() => disconnect()}>{(localStorage.getItem("walletAddress")).substring(0, 6)}...{(localStorage.getItem("walletAddress")).substring((localStorage.getItem("walletAddress")).length -4, (localStorage.getItem("walletAddress")).length)}</Button>
+                <br></br>
+                 <Button  onClick={() => optin()}>Optin To App</Button></>
+
+          }
           
         </Container>
       </Navbar>

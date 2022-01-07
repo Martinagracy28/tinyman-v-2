@@ -14,11 +14,11 @@ import ToastContainer from "react-bootstrap/ToastContainer";
 
 const myAlgoWallet = new MyAlgoConnect();
 const algodClient = new algosdk.Algodv2('', 'https://api.testnet.algoexplorer.io', '');
-
+let appID_global = 56830710;
 let data = `#pragma version 4
     
-// Tinyman Pool LogicSig
-// Documentation: https://docs.tinyman.org
+// Element Pool LogicSig
+
 
 // This code should be read in conjunction with validator_approval.teal.
 // The validation logic is split between these two programs.
@@ -61,7 +61,7 @@ int appl // ApplicationCall
 assert
 
 gtxn 1 ApplicationID
-int 52397037
+int 56830710
 ==
 assert
 
@@ -199,21 +199,21 @@ bootstrap:
 
     // ensure unit name is 'TM1POOL'
     gtxn 2 ConfigAssetUnitName
-    byte "TM1POOL"
+    byte "ELEMPOOL"
     ==
     assert
 
-    // ensure asset name begins with 'Tinyman Pool '
+    // ensure asset name begins with 'Element Pool '
     // the Validator app ensures the name ends with "{asset1_unit_name}-{asset2_unit_name}"
     gtxn 2 ConfigAssetName
     substring 0 13
-    byte "Tinyman Pool "
+    byte "Element Pool "
     ==
     assert
 
-    // ensure asset url is 'https://tinyman.org'
+    // ensure asset url is 'https://Element.org'
     gtxn 2 ConfigAssetURL
-    byte "https://tinyman.org"
+    byte "https://Element.org"
     ==
     assert
 
@@ -746,6 +746,7 @@ function Pool() {
       let index = parseInt(appid);
       console.log("appId inside donate", index);
       console.log("input1",input1)
+      console.log("input2",input2)
       setAppId(appid);
         
       let replacedData = data.replaceAll("Token1",tokenid1).replaceAll("Token2",tokenid2).replaceAll("appId",appId);
@@ -767,14 +768,14 @@ function Pool() {
 
       let total;
       if (s1 === undefined || s2 === "") {
-        total = Math.sqrt(input1 * input2) - 1000;
+        total = Math.floor(Math.sqrt(input1 * input2)) - 1000;
         console.log("Total,: ", total);
       } else {
         let liquidity_asset_amount = Math.min(
           (input1 * ilt) / s1,
           (input2 * ilt) / s2
         );
-        total = (liquidity_asset_amount - liquidity_asset_amount )* 0.5;
+        total = Math.floor((liquidity_asset_amount - liquidity_asset_amount )* 0.5);
         console.log("Total 2: ", total);
       }
 
@@ -943,7 +944,7 @@ function Pool() {
             accounts: [recv_escrow],
             appAccounts: recv_escrow,
             foreignAssets: foreignassetliquidity,
-            amount: parseInt(total.toFixed(0)),
+            amount: parseInt(Math.round(total)),
             suggestedParams: params,
           });
           const groupID = algosdk.computeGroupID([
@@ -1034,7 +1035,8 @@ function Pool() {
     
           let sender =  localStorage.getItem("walletAddress");;
           let recv_escrow = lsig.address();
-          let amount = 860000;
+          let amount ;
+         
           
           if(parseInt(t2) == 0){
             let accountasset1 = await algodClient.getAssetByID(t1).do();
@@ -1042,7 +1044,7 @@ function Pool() {
             let unit1 = accountasset1.params['unit-name'];
             console.log(unit1)
             let unit2 ="ALGO";
-
+            amount = 860000;
             let transaction1 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
               from: sender,
               to: recv_escrow,
@@ -1070,9 +1072,9 @@ function Pool() {
             const transaction3 =
               algosdk.makeAssetCreateTxnWithSuggestedParamsFromObject({
                 from: recv_escrow,
-                assetName: "Tinyman Pool "+unit1+"-"+"ALGO",
-                unitName: "TM1POOL",
-                assetURL: "https://tinyman.org",
+                assetName: "Element Pool "+unit1+"-"+"ALGO",
+                unitName: "ELEMPOOL",
+                assetURL: "https://Element.org",
                 total: 18446744073709551615n,
                 decimals: 6,
                 note: undefined,
@@ -1133,6 +1135,7 @@ function Pool() {
             let accountasset2 = await algodClient.getAssetByID(t2).do();
             let unit1 =accountasset1.params['unit-name']
             console.log(unit1)
+            amount = 961000;
             let unit2 =accountasset2.params['unit-name']
           let transaction1 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
             from: sender,
@@ -1161,9 +1164,9 @@ function Pool() {
           const transaction3 =
             algosdk.makeAssetCreateTxnWithSuggestedParamsFromObject({
               from: recv_escrow,
-              assetName: "Tinyman Pool "+unit1+"-"+unit2,
-              unitName: "TM1POOL",
-              assetURL: "https://tinyman.org",
+              assetName: "Element Pool " + unit1 + "-" + unit2,
+              unitName: "ELEMPOOL",
+              assetURL: "https://Element.org",
               total: 18446744073709551615n,
               decimals: 6,
               note: undefined,
@@ -1326,7 +1329,7 @@ function Pool() {
           { !showOptInButton ?  <Row className="justify-content-md-center">
             <Col xs lg="5"></Col>
             <Col xs lg="2">
-              <Button variant="primary" onClick={()=>bootstrap(52397037)}>Create this Pool</Button>
+              <Button variant="primary" onClick={()=>bootstrap(appID_global)}>Create this Pool</Button>
             </Col>          
             <Col xs lg="5"></Col>
           </Row> : null }
@@ -1334,7 +1337,7 @@ function Pool() {
           { showOptInButton && !showMintButton?  <Row className="justify-content-md-center">
             <Col xs lg="5"></Col>
             <Col xs lg="2">
-              <Button variant="primary" onClick={()=>optIn(52397037)}>OptIn</Button>
+              <Button variant="primary" onClick={()=>optIn(appID_global)}>OptIn</Button>
             </Col>          
             <Col xs lg="5"></Col>
           </Row> : null }
@@ -1359,7 +1362,7 @@ function Pool() {
           <Row className="justify-content-md-center" >
             <Col xs lg="6" className = "text-right"></Col>
             <Col xs lg="3">
-            <Button variant="primary" onClick={()=>mint(52397037)}>Add Liquidity</Button>
+            <Button variant="primary" onClick={()=>mint(appID_global)}>Add Liquidity</Button>
             </Col>
             <Col xs lg="3"></Col>
           </Row></div> : null }

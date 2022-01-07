@@ -13,11 +13,11 @@ import "./../bootstrap.min.css";
 
 const myAlgoWallet = new MyAlgoConnect();
 const algodClient = new algosdk.Algodv2('', 'https://api.testnet.algoexplorer.io', '');
-
+let appID_global = 56830710;
 let data = `#pragma version 4
     
-// Tinyman Pool LogicSig
-// Documentation: https://docs.tinyman.org
+// Element Pool LogicSig
+
 
 // This code should be read in conjunction with validator_approval.teal.
 // The validation logic is split between these two programs.
@@ -60,7 +60,7 @@ int appl // ApplicationCall
 assert
 
 gtxn 1 ApplicationID
-int 52397037
+int 56830710
 ==
 assert
 
@@ -198,21 +198,21 @@ bootstrap:
 
     // ensure unit name is 'TM1POOL'
     gtxn 2 ConfigAssetUnitName
-    byte "TM1POOL"
+    byte "ELEMPOOL"
     ==
     assert
 
-    // ensure asset name begins with 'Tinyman Pool '
+    // ensure asset name begins with 'Element Pool '
     // the Validator app ensures the name ends with "{asset1_unit_name}-{asset2_unit_name}"
     gtxn 2 ConfigAssetName
     substring 0 13
-    byte "Tinyman Pool "
+    byte "Element Pool "
     ==
     assert
 
-    // ensure asset url is 'https://tinyman.org'
+    // ensure asset url is 'https://Element.org'
     gtxn 2 ConfigAssetURL
-    byte "https://tinyman.org"
+    byte "https://Element.org"
     ==
     assert
 
@@ -670,6 +670,7 @@ check_fees:
     >=
     return`;
   
+  
 function Burn() {
 
     const [s1, sets1] = useState("");
@@ -738,9 +739,20 @@ function Burn() {
       let index = parseInt(appid);
       console.log("appId inside donate", index);
 
+      let t1,t2;
+      if(tokenid1 > tokenid2 ){
+          t1 = tokenid1;
+          t2 = tokenid2;
+          
+      }
+      else{
+          t1 = tokenid2;
+          t2 = tokenid1;
+          
+      }
       setAppId(appid);
-      let replacedData = data.replaceAll("Token1",tokenid1);
-      let replacedData2 = replacedData.replaceAll("Token2",tokenid2);
+      let replacedData = data.replaceAll("Token1",t1);
+      let replacedData2 = replacedData.replaceAll("Token2",t2);
       let replacedData3 = replacedData2.replaceAll("appId",appId);
      console.log("compiling")
       let results = await algodClient.compile(replacedData3).do();
@@ -757,7 +769,7 @@ function Burn() {
         ""
       );
       
-      readLocalState(algodClient,localStorage.getItem("escrow"),52397037)
+      readLocalState(algodClient,localStorage.getItem("escrow"),appID_global)
     }
 
     const burn = async (appid,asset_in_amount) => {
@@ -766,8 +778,18 @@ function Burn() {
       console.log("appId inside donate", index);
 
       setAppId(appid);
-        
-      let replacedData = data.replaceAll("Token1",tokenid1).replaceAll("Token2",tokenid2).replaceAll("appId",appId);
+      let t1,t2;
+      if(tokenid1 > tokenid2 ){
+          t1 = tokenid1;
+          t2 = tokenid2;
+          
+      }
+      else{
+          t1 = tokenid2;
+          t2 = tokenid1;
+          
+      }
+      let replacedData = data.replaceAll("Token1",t1).replaceAll("Token2",t2).replaceAll("appId",appId);
       let results = await algodClient.compile(replacedData).do();
    console.log("data")
 
@@ -775,7 +797,7 @@ function Burn() {
       console.log("Result = " + results.result);
       let escrowaddress = localStorage.getItem("escrow");
       console.log("escrow",escrowaddress)
-      let accountInfoResponse = await algodClient.accountInformation(escrowaddress).do();
+      let accountInfoResponse = await algodClient.accountInformation(results.hash).do();
       console.log("account",accountInfoResponse);
       let assetId3 = accountInfoResponse['created-assets'][0]['index'];
       console.log('Asset 3 ID: ', assetId3);
@@ -785,135 +807,107 @@ function Burn() {
       let lsig = algosdk.makeLogicSig(program);
       console.log("Escrow =", lsig.address()); 
 
-      readLocalState(algodClient,escrowaddress,appId);
-     console.log(s1)
+          readLocalState(algodClient,escrowaddress,appId);
+          console.log(s1)
+          let asset1_amount = (liquidity_asset_in * s1) / ilt ;
+          let asset2_amount = (liquidity_asset_in * s2) / ilt ;
+          let asset1_amount_out = asset1_amount - (asset1_amount * 0.5)
+          let asset2_amount_out = asset2_amount - (asset2_amount * 0.5)
+
+          try {
+            // const accounts = await myAlgoWallet.connect();
+            // const addresses = accounts.map(account => account.address);
+            const params = await algodClient.getTransactionParams().do();
+            
+            let sender =  localStorage.getItem("walletAddress");
+            let recv_escrow = lsig.address();
+            let amount = 3000;
+            
+            let note1=[];
+            note1.push(new Uint8Array(Buffer.from("fee")));
+            let transaction1 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+              from:  localStorage.getItem("walletAddress"), 
+              to: recv_escrow, 
+              amount: amount, 
+              //  note: note1,  
+               suggestedParams: params
+             });
+           
+             let appArg = [];
+             appArg.push(new Uint8Array(Buffer.from("burn")));
+             
+             let foreignassets = [];
+            //  let decAddr = algosdk.decodeAddress(addresses[0]);
+            //  foreignassets.push(decAddr.publicKey);
+             foreignassets.push(parseInt(t1));
+             foreignassets.push(parseInt(t2));
+             foreignassets.push(parseInt(assetId3));
+             const transaction2 = algosdk.makeApplicationNoOpTxnFromObject({
+                 from: recv_escrow, 
+                 appIndex: index,
+                 appArgs: appArg,
+                 appAccounts: localStorage.getItem("walletAddress"),
+                 accounts: [ localStorage.getItem("walletAddress")],
+                 foreignAssets:foreignassets,
+                 suggestedParams: params
+               });
       
-     let asset1_amount = (liquidity_asset_in * s1) / ilt ;
-     let asset2_amount = (liquidity_asset_in * s2) / ilt ;
-     let asset1_amount_out = asset1_amount - (asset1_amount * 0.5)
-     let asset2_amount_out = asset2_amount - (asset2_amount * 0.5)
-      
-      try {
-
-        const params = await algodClient.getTransactionParams().do();
-        
-        let sender = localStorage.getItem("walletAddress");
-        let recv_escrow = lsig.address();
-        let amount = 3000;
-        
-        let transaction1 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-          from: sender, 
-          to: recv_escrow, 
-          amount: amount,  
-           suggestedParams: params
-         });
-       
-         let appArg = [];
-         appArg.push(new Uint8Array(Buffer.from("burn")));
-        //  appArg.push(new Uint8Array(Buffer.from("fi")));
-
-         let foreignassets = [];
-
-         if(parseInt(tokenid1)==0){
-          // foreignassets.push(parseInt(tokenid1));
-          foreignassets.push(parseInt(tokenid2));
-          foreignassets.push(parseInt(assetId3));
-         }
-         else if(parseInt(tokenid2)==0){
-          foreignassets.push(parseInt(tokenid1));
-          // foreignassets.push(parseInt(tokenid2));
-          foreignassets.push(parseInt(assetId3));
-         }
-         else{
-          foreignassets.push(parseInt(tokenid1));
-          foreignassets.push(parseInt(tokenid2));
-          foreignassets.push(parseInt(assetId3));
-         }
-         
-         
-         const transaction2 = algosdk.makeApplicationNoOpTxnFromObject({
-             from: recv_escrow, 
-             appIndex: index,
-             appArgs: appArg,
-             appAccounts:sender,
-             accounts: [sender],
-             foreignAssets:foreignassets,
-             suggestedParams: params
-           });
-           let transaction3;
-           let transaction4;
-           if(parseInt(tokenid1)==0){
-            transaction3 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-              from: recv_escrow,
-              to: sender,
-              note: undefined,
-              accounts:sender,
-              amount:parseInt(parseInt(asset1_amount_out.toFixed(0))), 
-              suggestedParams: params
-            });
-           }
-           else{
-            transaction3 = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-              from: recv_escrow,
-              to: sender,
-              assetIndex: parseInt(tokenid1),
-              note: undefined,
-              accounts:sender,
-              amount: parseInt(parseInt(asset1_amount_out.toFixed(0))), 
-              suggestedParams: params
-            });
-           }
-          
-          if(parseInt(tokenid2)==0){
-           transaction4 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-              from: recv_escrow ,
-              to: sender,               
-              note: undefined,
-              accounts: recv_escrow,
-              amount: parseInt(asset2_amount_out.toFixed(0)),
-              suggestedParams: params
-            });
-          }
-          else{
-            transaction4 = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-              from: recv_escrow ,
-              to: sender,
-              assetIndex:parseInt(tokenid2), 
-              note: undefined,
-              accounts: recv_escrow,
-              amount: parseInt(asset2_amount_out.toFixed(0)),
-              suggestedParams: params
-            });
-        }
-                let foreignassetliquidity =[];
+             
+              console.log(parseInt(asset1_amount).toFixed(0))
+              const transaction3 = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+                from:recv_escrow ,
+                to:  localStorage.getItem("walletAddress"),
+                assetIndex: parseInt(t1),
+                note: undefined,
+                accounts:  localStorage.getItem("walletAddress"),
+                amount: parseInt(parseInt(asset1_amount_out.toFixed(0))),
+                suggestedParams: params
+              });
+  
+              const transaction4 = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+                from:recv_escrow ,
+                to:  localStorage.getItem("walletAddress"),
+                assetIndex: parseInt(t2),
+                note: undefined,
+                accounts:  localStorage.getItem("walletAddress"),
+                amount: parseInt(asset2_amount_out.toFixed(0)),
+                suggestedParams: params
+              });
+              
+              let foreignassetliquidity =[];
               foreignassetliquidity.push(parseInt(assetId3));
               // let decAddr = algosdk.decodeAddress(recv_escrow);
               // let acc =[];
               // acc.push(decAddr.publicKey);
               const transaction5 = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-                from: sender ,
+                from:  localStorage.getItem("walletAddress") ,
                 to:recv_escrow ,
                 assetIndex: parseInt(assetId3),
                 note: undefined,
                 accounts: [recv_escrow],
                 appAccounts:recv_escrow,
                 foreignAssets:foreignassetliquidity,
-                amount: parseInt(parseInt(liquidity_asset_in).toFixed(0)),
+                amount: parseInt(liquidity_asset_in),
                 suggestedParams: params
               });
-         
-          
-          
-        const groupID = algosdk.computeGroupID([ transaction1, transaction2, transaction3, transaction4, transaction5]);
-        const txs = [ transaction1, transaction2, transaction3, transaction4, transaction5];
-        for (let i = 0; i <= 3; i++) txs[i].group = groupID;
       
-        const signedTx2 = algosdk.signLogicSigTransaction(txs[1], lsig);
-        const signedTx3 = algosdk.signLogicSigTransaction(txs[2], lsig);
-        const signedTx4 = algosdk.signLogicSigTransaction(txs[3], lsig);
-        const signedTxnarray = await myAlgoWallet.signTransaction([txs[0].toByte(),txs[4].toByte()]);
-        
-    const response = await algodClient.sendRawTransaction([signedTxnarray[0].blob, signedTx2.blob, signedTx2.blob, signedTx4.blob,signedTxnarray[1].blob]).do();
+          
+            const groupID = algosdk.computeGroupID([ transaction1, transaction2, transaction3, transaction4, transaction5]);
+            const txs = [ transaction1, transaction2, transaction3, transaction4, transaction5];
+            txs[0].group = groupID;
+            txs[1].group = groupID;
+            txs[2].group = groupID;
+            txs[3].group = groupID;
+            txs[4].group = groupID;
+            
+            const signedTx1 = await myAlgoWallet.signTransaction([txs[0].toByte(),txs[4].toByte()]);
+            const signedTx2 = algosdk.signLogicSigTransaction(txs[1], lsig);
+            const signedTx3 = algosdk.signLogicSigTransaction(txs[2], lsig);
+            const signedTx4 = algosdk.signLogicSigTransaction(txs[3], lsig);
+            // const signedTx5 = await myAlgoWallet.signTransaction(txs[4].toByte());
+      
+      const response = await algodClient.sendRawTransaction([ signedTx1[0].blob, signedTx2.blob, signedTx3.blob, signedTx4.blob, signedTx1[1].blob ]).do();
+         
     console.log("TxID", JSON.stringify(response, null, 1));
     setTxId(response.txId);
     setShow(true);
@@ -997,12 +991,12 @@ function Burn() {
             <Col xs lg="5"></Col>
             {!swapbutton ?
               <Col xs lg="4">
-              <Button variant="primary" onClick={()=>selecttoken(52397037)}>Confirm</Button>
+              <Button variant="primary" onClick={()=>selecttoken(appID_global)}>Confirm</Button>
               </Col> 
             :null}
             {swapbutton ?
               <Col xs lg="4">
-              <Button variant="primary" onClick={()=>burn(52397037,liquidity_asset_in)}>Burn</Button>
+              <Button variant="primary" onClick={()=>burn(appID_global,liquidity_asset_in)}>Burn</Button>
               </Col> 
             :null}
                      
