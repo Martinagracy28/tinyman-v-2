@@ -13,7 +13,7 @@ import "./../bootstrap.min.css";
 
 const myAlgoWallet = new MyAlgoConnect();
 const algodClient = new algosdk.Algodv2('', 'https://api.testnet.algoexplorer.io', '');
-
+let appID_global = 56830710;
 let data = `#pragma version 4
     
 // Element Pool LogicSig
@@ -60,7 +60,7 @@ int appl // ApplicationCall
 assert
 
 gtxn 1 ApplicationID
-int 56830710
+int appId
 ==
 assert
 
@@ -713,7 +713,8 @@ function Swap() {
     async function readLocalState(client, account, index1){
         let accountInfoResponse = await client.accountInformation(account).do();
         console.log("accinfo",accountInfoResponse);
-        for(let i = 0; i< accountInfoResponse['apps-local-state'][0]['key-value'].length;i++){
+        if(accountInfoResponse['apps-local-state'].length > 0){
+          for(let i = 0; i< accountInfoResponse['apps-local-state'][0]['key-value'].length;i++){
             if(accountInfoResponse['apps-local-state'][0]['key-value'][i]['key'] === "czE="){
              sets1(accountInfoResponse['apps-local-state'][0]['key-value'][i]['value']['uint'])
              console.log(accountInfoResponse['apps-local-state'][0]['key-value'][i]['value']['uint'])
@@ -727,6 +728,8 @@ function Swap() {
              console.log(accountInfoResponse['apps-local-state'][0]['key-value'][i]['value']['uint'])
             }
           }
+        }
+       
         // for (let i = 0; i < accountInfoResponse['apps-local-state'].length; i++) { 
         //   if (accountInfoResponse['apps-local-state'][i].id == index1) {
         //       console.log("Application's global state:");
@@ -778,8 +781,9 @@ function Swap() {
         "https://api.testnet.algoexplorer.io",
         ""
       );
+      readLocalState(algodClient,localStorage.getItem("escrow"),appID_global)
       
-      readLocalState(algodClient,localStorage.getItem("escrow"),56830710)
+     
     }
 
     const swap = async (appid,asset_in_amount) => {
@@ -901,6 +905,7 @@ function Swap() {
             });
            }
            else{
+             console.log("asset1",t1);
             transaction3 = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
               from: sender,
               to: recv_escrow,
@@ -1009,7 +1014,7 @@ function Swap() {
         let l = asset_in_amount_minus_fee - swap_fees;
         console.log('l', l);
 
-        let asset_out_amount = r2 - (k / (r1 + l ))   ;
+        let asset_out_amount = r2 - (k / (r1 + l ));
 
         console.log("s",asset_out_amount);
         set_inp_goal(asset_out_amount);
@@ -1076,12 +1081,12 @@ function Swap() {
             <Col xs lg="5"></Col>
             {!swapbutton ?
               <Col xs lg="4">
-              <Button variant="primary" onClick={()=>selecttoken(56830710)}>Confirm</Button>
+              <Button variant="primary" onClick={()=>selecttoken(appID_global)}>Confirm</Button>
               </Col> 
             :null}
             {swapbutton ?
               <Col xs lg="4">
-              <Button variant="primary" onClick={()=>swap(56830710,swapamount)}>Swap</Button>
+              <Button variant="primary" onClick={()=>swap(appID_global,swapamount)}>Swap</Button>
               </Col> 
             :null}
                      

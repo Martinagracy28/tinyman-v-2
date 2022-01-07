@@ -60,7 +60,7 @@ int appl // ApplicationCall
 assert
 
 gtxn 1 ApplicationID
-int 56830710
+int appId
 ==
 assert
 
