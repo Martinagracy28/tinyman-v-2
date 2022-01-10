@@ -13,7 +13,7 @@ import "./../bootstrap.min.css";
 
 const myAlgoWallet = new MyAlgoConnect();
 const algodClient = new algosdk.Algodv2('', 'https://api.testnet.algoexplorer.io', '');
-let appID_global = 56830710;
+let appID_global = 57691024;
 let data = `#pragma version 4
     
 // Element Pool LogicSig
@@ -542,7 +542,7 @@ swap:
     // 2: Asset Transfer/Pay (signed by Swapper)
     // 3: Asset Transfer/Pay (signed by Pool LogicSig)
     global GroupSize
-    int 4
+    int 5
     ==
     assert
 
@@ -682,6 +682,7 @@ function Swap() {
     const[samount1,setsamount1] = useState("");
     const[samount2,setsamount2] = useState("");
     const[swapbutton,setswapbutton] = useState("");
+    const[optinbutton,setoptinbutton] = useState("");
     const[txId, setTxId] = useState("");
     const [show, setShow] = useState(false);
      
@@ -771,7 +772,7 @@ function Swap() {
       let results = await algodClient.compile(replacedData).do();
       localStorage.setItem("escrow",results.hash);
       readLocalState(algodClient,results.hash,appId);
-      setswapbutton(true);
+      setoptinbutton(true);
 
     } 
     useEffect(() =>{first()},[s1,s2])
@@ -942,17 +943,83 @@ function Swap() {
               suggestedParams: params
             });
           }
+ let newescrow = `#pragma version 5
+
+ txn TypeEnum
+ int axfer
+ ==
+ bnz success
+ global GroupSize
+ int 5
+ ==
+ gtxn 4 TypeEnum
+ int axfer
+ ==
+ &&
+ gtxn 1 ApplicationID
+ int 57691024
+ ==
+ &&
+ gtxn 2 AssetSender
+ gtxn 4 AssetReceiver
+ ==
+ &&
+ int 0
+ gtxn 2 AssetAmount
+ int 997
+ *
+ int 1000
+ /
+ store 1
+ int 0
+ gtxn 2 AssetAmount
+ load 1
+ -
+ store 2
+ int 0
+ gtxn 4 AssetAmount
+ load 2
+ ==
+ gtxn 4 XferAsset
+ int 57692249
+ ==
+ &&
+ bnz success
+ bz failed
+ 
+ failed:
+ int 0
+ return
+ 
+ success:
+ int 1
+ return`;
+ let results1 = await algodClient.compile(newescrow).do(); 
+ console.log("escrownew",results1.hash)  
+ let program1 = new Uint8Array(Buffer.from(results1.result, "base64"));
+  
+      let lsig1 = algosdk.makeLogicSig(program1);
+         let transaction5 = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+            from: results1.hash ,
+            to: sender,
+            assetIndex:parseInt(57692249), 
+            note: undefined,
+            accounts: recv_escrow,
+            amount: parseInt(parseInt(swap_fees).toFixed(0)),
+            suggestedParams: params
+          });
           
           
-        const groupID = algosdk.computeGroupID([ transaction1, transaction2, transaction3, transaction4]);
-        const txs = [ transaction1, transaction2, transaction3, transaction4];
-        for (let i = 0; i <= 3; i++) txs[i].group = groupID;
+        const groupID = algosdk.computeGroupID([ transaction1, transaction2, transaction3, transaction4,transaction5]);
+        const txs = [ transaction1, transaction2, transaction3, transaction4, transaction5];
+        for (let i = 0; i <= 4; i++) txs[i].group = groupID;
       
         const signedTx2 = algosdk.signLogicSigTransaction(txs[1], lsig);
         const signedTx4 = algosdk.signLogicSigTransaction(txs[3], lsig);
+        const signedTx5 = algosdk.signLogicSigTransaction(txs[4], lsig1);
         const signedTxnarray = await myAlgoWallet.signTransaction([txs[0].toByte(),txs[2].toByte()]);
         
-    const response = await algodClient.sendRawTransaction([signedTxnarray[0].blob, signedTx2.blob, signedTxnarray[1].blob, signedTx4.blob]).do();
+    const response = await algodClient.sendRawTransaction([signedTxnarray[0].blob, signedTx2.blob, signedTxnarray[1].blob, signedTx4.blob, signedTx5.blob]).do();
     console.log("TxID", JSON.stringify(response, null, 1));
     setTxId(response.txId);
     setShow(true);
@@ -1027,6 +1094,39 @@ function Swap() {
     
   
   }
+  const optin =async (feesassetid) => {
+
+    const algodClient = new algosdk.Algodv2('', 'https://api.testnet.algoexplorer.io', '');
+    const params = await algodClient.getTransactionParams().do();
+    
+  
+try {
+
+
+let optinTranscation = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+  from:localStorage.getItem("walletAddress"),
+  to :localStorage.getItem("walletAddress"),
+  assetIndex: feesassetid ,
+  amount: 0,
+  suggestedParams:params,
+});
+
+
+  
+  const signedTx1 = await myAlgoWallet.signTransaction(optinTranscation.toByte());
+  
+
+const response = await algodClient.sendRawTransaction(signedTx1.blob).do();
+console.log("TxID", JSON.stringify(response, null, 1));
+await waitForConfirmation(algodClient, response.txId);
+setoptinbutton(false)
+setswapbutton(true);
+} catch (err) {
+  console.error(err);
+}
+
+ 
+}
   
     return (
       <div
@@ -1048,7 +1148,7 @@ function Swap() {
           </Row>
           <br/>
           <br/>            
-            {!swapbutton ?<div><Row className="justify-content-md-center">
+            {!swapbutton && !optinbutton ?<div><Row className="justify-content-md-center">
               <Col xs lg="4" className = "text-right">Select Asset 1 : </Col>
               <Col xs lg="2">
                 <input type="number" name="Asset1" placeholder="Enter Asset 1" onChange={event => settoken1(event.target.value)} />           
@@ -1083,9 +1183,14 @@ function Swap() {
           <br/>
           <Row className="justify-content-md-center">
             <Col xs lg="5"></Col>
-            {!swapbutton ?
+            {!swapbutton && !optinbutton ?
               <Col xs lg="4">
               <Button variant="primary" onClick={()=>selecttoken(appID_global)}>Confirm</Button>
+              </Col> 
+            :null}
+             {optinbutton ?
+              <Col xs lg="4">
+              <Button variant="primary" onClick={()=>optin(57692249)}>Optin asset</Button>
               </Col> 
             :null}
             {swapbutton ?

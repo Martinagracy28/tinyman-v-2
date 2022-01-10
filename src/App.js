@@ -21,7 +21,7 @@ import algosdk from "algosdk";
 import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
 
 const myAlgoWallet = new MyAlgoConnect();
-let appID_global = 56830710;
+let appID_global = 57691024;
 
 function App() {
 

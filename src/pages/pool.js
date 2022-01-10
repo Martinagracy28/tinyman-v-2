@@ -14,7 +14,7 @@ import ToastContainer from "react-bootstrap/ToastContainer";
 
 const myAlgoWallet = new MyAlgoConnect();
 const algodClient = new algosdk.Algodv2('', 'https://api.testnet.algoexplorer.io', '');
-let appID_global = 56830710;
+let appID_global = 57691024;
 let data = `#pragma version 4
     
 // Element Pool LogicSig
@@ -543,7 +543,7 @@ swap:
     // 2: Asset Transfer/Pay (signed by Swapper)
     // 3: Asset Transfer/Pay (signed by Pool LogicSig)
     global GroupSize
-    int 4
+    int 5
     ==
     assert
 
