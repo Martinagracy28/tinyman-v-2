@@ -781,8 +781,12 @@ function Swap() {
         "https://api.testnet.algoexplorer.io",
         ""
       );
-      readLocalState(algodClient,localStorage.getItem("escrow"),appID_global)
-      
+        
+     readLocalState(algodClient,localStorage.getItem("escrow"),appID_global)
+     let app = await algodClient.getApplicationByID(appID_global).do();
+    //  readLocalState(algodClient,localStorage.getItem("walletAddress"),appID_global)
+     
+    console.log("s1",app)  
      
     }
 

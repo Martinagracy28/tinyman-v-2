@@ -1015,11 +1015,12 @@ function Pool() {
       console.log(t2)
     }
     
-        let index = parseInt(appid);
+        let index = parseInt(appID_global);
         console.log("appId inside donate", index);
         let replacedData = data.replaceAll("Token1",t1)
         let replacedData2 = replacedData.replaceAll("Token2",t2)
-        let results = await algodClient.compile(replacedData2).do();
+        let replacedData3 = replacedData2.replaceAll("appId",appID_global);
+        let results = await algodClient.compile(replacedData3).do();
         console.log("Hash = " + results.hash);
         console.log("Result = " + results.result);
         localStorage.setItem("escrow",results.hash)

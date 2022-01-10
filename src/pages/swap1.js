@@ -774,8 +774,11 @@ function Swap() {
         ""
       );
       
-    //  readLocalState(algodClient,localStorage.getItem("escrow"),appID_global)
-    //  console.log("s1",s1)  
+     //readLocalState(algodClient,localStorage.getItem("escrow"),appID_global)
+      
+     readLocalState(algodClient,localStorage.getItem("WalletAddress"),appID_global)
+     
+     console.log("s1",localStorage.getItem("WalletAddress"))  
     }
 
     const swap = async (appid,asset_in_amount) => {
